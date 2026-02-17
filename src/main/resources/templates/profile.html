@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile - Passkey Demo</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="page">
+        <header th:replace="~{fragments/layout :: header}"></header>
+        <main class="container">
+            <div class="profile-section">
+                <h2>Profile</h2>
+                <div class="user-info">
+                    <p><strong>Username:</strong> <span th:text="${username}">user</span></p>
+                </div>
+            </div>
+
+            <div class="passkey-management">
+                <h3>Passkeys</h3>
+
+                <div id="register-result" class="alert" style="display:none;"></div>
+
+                <div class="register-form">
+                    <div class="form-group form-inline">
+                        <label for="passkey-label">Label</label>
+                        <input type="text" id="passkey-label" placeholder="e.g. my-macbook" required />
+                        <button id="register-passkey" class="btn btn-primary">Register</button>
+                    </div>
+                </div>
+
+                <table th:if="${!passkeys.isEmpty()}" class="passkey-table">
+                    <thead>
+                        <tr>
+                            <th>Label</th>
+                            <th>Created</th>
+                            <th>Last Used</th>
+                            <th>Sign Count</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="pk : ${passkeys}">
+                            <td th:text="${pk.label}">my-macbook</td>
+                            <td th:text="${pk.created != null ? #temporals.format(pk.created, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                            <td th:text="${pk.lastUsed != null ? #temporals.format(pk.lastUsed, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                            <td th:text="${pk.signatureCount}">0</td>
+                            <td>
+                                <form th:action="@{/profile/passkeys/delete}" method="post" class="inline-form">
+                                    <input type="hidden" name="credentialId" th:value="${pk.credentialId.toBase64UrlString()}" />
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${passkeys.isEmpty()}" class="text-muted">No passkeys registered yet.</p>
+            </div>
+        </main>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+    </div>
+
+    <script>
+    (function() {
+        function base64urlToBuffer(base64url) {
+            var base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+            var padding = '='.repeat((4 - base64.length % 4) % 4);
+            var binary = atob(base64 + padding);
+            var bytes = new Uint8Array(binary.length);
+            for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes.buffer;
+        }
+        function bufferToBase64url(buffer) {
+            var bytes = new Uint8Array(buffer);
+            var binary = '';
+            for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+        function getCsrf() {
+            return {
+                token: document.querySelector('meta[name="_csrf"]').content,
+                header: document.querySelector('meta[name="_csrf_header"]').content
+            };
+        }
+        function showResult(msg, isError) {
+            var el = document.getElementById('register-result');
+            el.textContent = msg;
+            el.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            el.style.display = 'block';
+        }
+
+        document.getElementById('register-passkey').addEventListener('click', async function() {
+            var label = document.getElementById('passkey-label').value.trim();
+            if (!label) { showResult('Please enter a label.', true); return; }
+            try {
+                var csrf = getCsrf();
+                var optRes = await fetch('/webauthn/register/options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token },
+                    body: JSON.stringify({ label: label })
+                });
+                if (!optRes.ok) throw new Error('Failed to get registration options');
+                var options = await optRes.json();
+
+                var publicKey = options.publicKey || options;
+                publicKey.challenge = base64urlToBuffer(publicKey.challenge);
+                publicKey.user.id = base64urlToBuffer(publicKey.user.id);
+                if (publicKey.excludeCredentials) {
+                    publicKey.excludeCredentials = publicKey.excludeCredentials.map(function(c) {
+                        return Object.assign({}, c, { id: base64urlToBuffer(c.id) });
+                    });
+                }
+
+                var cred = await navigator.credentials.create({ publicKey: publicKey });
+
+                var body = JSON.stringify({
+                    publicKey: {
+                        credential: {
+                            id: cred.id,
+                            rawId: bufferToBase64url(cred.rawId),
+                            response: {
+                                attestationObject: bufferToBase64url(cred.response.attestationObject),
+                                clientDataJSON: bufferToBase64url(cred.response.clientDataJSON)
+                            },
+                            clientExtensionResults: cred.getClientExtensionResults(),
+                            type: cred.type
+                        },
+                        label: label
+                    }
+                });
+                var regRes = await fetch('/webauthn/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token },
+                    body: body
+                });
+                if (regRes.ok) {
+                    window.location.reload();
+                } else {
+                    var err = await regRes.text();
+                    showResult('Registration failed: ' + err, true);
+                }
+            } catch (e) {
+                if (e.name !== 'NotAllowedError') {
+                    console.error('WebAuthn registration error:', e);
+                    showResult('Registration failed: ' + e.message, true);
+                }
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

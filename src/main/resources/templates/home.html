@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Home - Passkey Demo</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="page">
+        <header th:replace="~{fragments/layout :: header}"></header>
+        <main class="container">
+            <div class="welcome-section">
+                <h2>Welcome, <span th:text="${username}">user</span></h2>
+                <p>You are logged in. Manage your passkeys from the Profile page.</p>
+                <div class="action-buttons">
+                    <a href="/profile" class="btn btn-primary">Go to Profile</a>
+                </div>
+            </div>
+        </main>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+    </div>
+</body>
+</html>

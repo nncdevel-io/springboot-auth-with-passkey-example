@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Error - Passkey Demo</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="page">
+        <header>
+            <div class="header-inner">
+                <a href="/" class="header-logo">Passkey Demo</a>
+            </div>
+        </header>
+        <main class="container">
+            <div class="error-section">
+                <h2>An error occurred</h2>
+                <div class="error-details">
+                    <p><strong>Status:</strong> <span th:text="${status}">500</span></p>
+                    <p><strong>Error:</strong> <span th:text="${error}">Internal Server Error</span></p>
+                    <p th:if="${message}"><strong>Message:</strong> <span th:text="${message}"></span></p>
+                </div>
+                <div class="action-buttons">
+                    <a href="/" class="btn btn-primary">Back to Home</a>
+                </div>
+            </div>
+        </main>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+    </div>
+</body>
+</html>

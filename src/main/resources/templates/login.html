@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Passkey Demo</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="page">
+        <header>
+            <div class="header-inner">
+                <span class="header-logo">Passkey Demo</span>
+            </div>
+        </header>
+        <main class="container">
+            <div class="login-section">
+                <h2>Sign In</h2>
+
+                <div th:if="${param.error}" class="alert alert-error">
+                    <p>Invalid username or password.</p>
+                </div>
+                <div th:if="${param.logout}" class="alert alert-success">
+                    <p>You have been logged out.</p>
+                </div>
+
+                <div class="demo-credentials">
+                    <p><strong>Demo Account</strong></p>
+                    <p>Username: <code>user</code> / Password: <code>password</code></p>
+                </div>
+
+                <form th:action="@{/login}" method="post">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" autofocus required />
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+                </form>
+
+                <div class="passkey-section">
+                    <div class="divider"><span>or</span></div>
+                    <button id="passkey-signin" class="btn btn-secondary btn-full">Sign in with a passkey</button>
+                </div>
+            </div>
+        </main>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+    </div>
+
+    <script>
+    (function() {
+        function base64urlToBuffer(base64url) {
+            var base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+            var padding = '='.repeat((4 - base64.length % 4) % 4);
+            var binary = atob(base64 + padding);
+            var bytes = new Uint8Array(binary.length);
+            for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes.buffer;
+        }
+        function bufferToBase64url(buffer) {
+            var bytes = new Uint8Array(buffer);
+            var binary = '';
+            for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+        function getCsrf() {
+            return {
+                token: document.querySelector('meta[name="_csrf"]').content,
+                header: document.querySelector('meta[name="_csrf_header"]').content
+            };
+        }
+        document.getElementById('passkey-signin').addEventListener('click', async function() {
+            try {
+                var csrf = getCsrf();
+                var optRes = await fetch('/webauthn/authenticate/options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token },
+                    body: '{}'
+                });
+                if (!optRes.ok) throw new Error('Failed to get authentication options');
+                var options = await optRes.json();
+                options.challenge = base64urlToBuffer(options.challenge);
+                if (options.allowCredentials) {
+                    options.allowCredentials = options.allowCredentials.map(function(c) {
+                        return Object.assign({}, c, { id: base64urlToBuffer(c.id) });
+                    });
+                }
+                var cred = await navigator.credentials.get({ publicKey: options });
+                var body = JSON.stringify({
+                    id: cred.id,
+                    rawId: bufferToBase64url(cred.rawId),
+                    response: {
+                        authenticatorData: bufferToBase64url(cred.response.authenticatorData),
+                        clientDataJSON: bufferToBase64url(cred.response.clientDataJSON),
+                        signature: bufferToBase64url(cred.response.signature),
+                        userHandle: cred.response.userHandle ? bufferToBase64url(cred.response.userHandle) : null
+                    },
+                    clientExtensionResults: cred.getClientExtensionResults(),
+                    type: cred.type
+                });
+                var loginRes = await fetch('/login/webauthn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token },
+                    body: body, redirect: 'follow'
+                });
+                if (loginRes.ok) {
+                    try { var r = await loginRes.json(); window.location.href = r.redirectUrl || '/'; }
+                    catch(e) { window.location.href = '/'; }
+                } else { window.location.href = '/login?error'; }
+            } catch (e) {
+                if (e.name !== 'NotAllowedError') console.error('WebAuthn error:', e);
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
