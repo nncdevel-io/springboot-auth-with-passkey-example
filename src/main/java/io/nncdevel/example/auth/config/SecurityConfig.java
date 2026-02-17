@@ -30,7 +30,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/error", "/.well-known/**").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/error", "/.well-known/**").permitAll()
                 .anyRequest().authenticated()
             )
             .requestCache(cache -> cache
