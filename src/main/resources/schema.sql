@@ -7,8 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS authorities (
     username  VARCHAR(50) NOT NULL,
-    authority VARCHAR(50) NOT NULL,
-    CONSTRAINT fk_authorities_users FOREIGN KEY (username) REFERENCES users(username)
+    authority VARCHAR(50) NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_auth_username ON authorities (username, authority);
 
@@ -33,7 +32,5 @@ CREATE TABLE IF NOT EXISTS user_credentials (
     attestation_client_data_json BLOB,
     created                      TIMESTAMP,
     last_used                    TIMESTAMP,
-    label                        VARCHAR(1000) NOT NULL,
-    CONSTRAINT fk_user_credentials FOREIGN KEY (user_entity_user_id)
-        REFERENCES public_key_credential_user_entity(id)
+    label                        VARCHAR(1000) NOT NULL
 );

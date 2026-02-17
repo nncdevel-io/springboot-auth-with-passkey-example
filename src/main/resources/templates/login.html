@@ -53,66 +53,85 @@
 
     <script>
     (function() {
-        function base64urlToBuffer(base64url) {
+        function base64urlEncode(buffer) {
+            var base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)));
+            return base64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+        }
+        function base64urlDecode(base64url) {
             var base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-            var padding = '='.repeat((4 - base64.length % 4) % 4);
-            var binary = atob(base64 + padding);
+            var binary = atob(base64);
             var bytes = new Uint8Array(binary.length);
             for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
             return bytes.buffer;
         }
-        function bufferToBase64url(buffer) {
-            var bytes = new Uint8Array(buffer);
-            var binary = '';
-            for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        function getCsrfHeaders() {
+            var token = document.querySelector('meta[name="_csrf"]').content;
+            var header = document.querySelector('meta[name="_csrf_header"]').content;
+            var headers = {};
+            headers[header] = token;
+            return headers;
         }
-        function getCsrf() {
-            return {
-                token: document.querySelector('meta[name="_csrf"]').content,
-                header: document.querySelector('meta[name="_csrf_header"]').content
+        async function postJson(url, headers, body) {
+            var options = {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, headers)
             };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            return fetch(url, options);
         }
+
         document.getElementById('passkey-signin').addEventListener('click', async function() {
             try {
-                var csrf = getCsrf();
-                var optRes = await fetch('/webauthn/authenticate/options', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token },
-                    body: '{}'
-                });
-                if (!optRes.ok) throw new Error('Failed to get authentication options');
+                var headers = getCsrfHeaders();
+
+                var optRes = await postJson('/webauthn/authenticate/options', headers);
+                if (!optRes.ok) throw new Error('HTTP ' + optRes.status);
                 var options = await optRes.json();
-                options.challenge = base64urlToBuffer(options.challenge);
-                if (options.allowCredentials) {
-                    options.allowCredentials = options.allowCredentials.map(function(c) {
-                        return Object.assign({}, c, { id: base64urlToBuffer(c.id) });
+
+                var decodedAllowCredentials = !options.allowCredentials ? [] :
+                    options.allowCredentials.map(function(c) {
+                        return Object.assign({}, c, { id: base64urlDecode(c.id) });
                     });
+                var publicKeyOptions = Object.assign({}, options, {
+                    allowCredentials: decodedAllowCredentials,
+                    challenge: base64urlDecode(options.challenge)
+                });
+
+                var cred = await navigator.credentials.get({ publicKey: publicKeyOptions });
+
+                var userHandle;
+                if (cred.response.userHandle) {
+                    userHandle = base64urlEncode(cred.response.userHandle);
                 }
-                var cred = await navigator.credentials.get({ publicKey: options });
-                var body = JSON.stringify({
+                var body = {
                     id: cred.id,
-                    rawId: bufferToBase64url(cred.rawId),
+                    rawId: base64urlEncode(cred.rawId),
                     response: {
-                        authenticatorData: bufferToBase64url(cred.response.authenticatorData),
-                        clientDataJSON: bufferToBase64url(cred.response.clientDataJSON),
-                        signature: bufferToBase64url(cred.response.signature),
-                        userHandle: cred.response.userHandle ? bufferToBase64url(cred.response.userHandle) : null
+                        authenticatorData: base64urlEncode(cred.response.authenticatorData),
+                        clientDataJSON: base64urlEncode(cred.response.clientDataJSON),
+                        signature: base64urlEncode(cred.response.signature),
+                        userHandle: userHandle
                     },
+                    credType: cred.type,
                     clientExtensionResults: cred.getClientExtensionResults(),
-                    type: cred.type
-                });
-                var loginRes = await fetch('/login/webauthn', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token },
-                    body: body, redirect: 'follow'
-                });
-                if (loginRes.ok) {
-                    try { var r = await loginRes.json(); window.location.href = r.redirectUrl || '/'; }
-                    catch(e) { window.location.href = '/'; }
-                } else { window.location.href = '/login?error'; }
+                    authenticatorAttachment: cred.authenticatorAttachment
+                };
+
+                var authRes = await postJson('/login/webauthn', headers, body);
+                if (!authRes.ok) throw new Error('HTTP ' + authRes.status);
+                var result = await authRes.json();
+                if (result && result.authenticated && result.redirectUrl) {
+                    window.location.href = result.redirectUrl;
+                } else {
+                    throw new Error('Authentication response invalid');
+                }
             } catch (e) {
-                if (e.name !== 'NotAllowedError') console.error('WebAuthn error:', e);
+                if (e.name !== 'NotAllowedError') {
+                    console.error('WebAuthn authentication error:', e);
+                    window.location.href = '/login?error';
+                }
             }
         });
     })();
