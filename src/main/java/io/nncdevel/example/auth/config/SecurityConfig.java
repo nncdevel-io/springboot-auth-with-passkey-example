@@ -14,7 +14,7 @@ import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.webauthn.management.JdbcUserCredentialRepository;
@@ -72,13 +72,14 @@ public class SecurityConfig {
 
     private RequestCache requestCache() {
         HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+        var matcher = PathPatternRequestMatcher.withDefaults();
         requestCache.setRequestMatcher(new NegatedRequestMatcher(new OrRequestMatcher(
-            new AntPathRequestMatcher("/login"),
-            new AntPathRequestMatcher("/login/**"),
-            new AntPathRequestMatcher("/logout"),
-            new AntPathRequestMatcher("/logout/**"),
-            new AntPathRequestMatcher("/error"),
-            new AntPathRequestMatcher("/.well-known/**")
+            matcher.matcher("/login"),
+            matcher.matcher("/login/**"),
+            matcher.matcher("/logout"),
+            matcher.matcher("/logout/**"),
+            matcher.matcher("/error"),
+            matcher.matcher("/.well-known/**")
         )));
         return requestCache;
     }

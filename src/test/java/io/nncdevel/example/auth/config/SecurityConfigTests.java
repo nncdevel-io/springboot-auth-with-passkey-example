@@ -5,30 +5,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class SecurityConfigTests {
 
     @Autowired
-    private MockMvc mockMvc;
+    private MockMvcTester mockMvc;
 
     @Test
-    void unauthenticatedAccessRedirectsToLogin() throws Exception {
-        mockMvc.perform(get("/"))
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrlPattern("**/login"));
+    void unauthenticatedAccessRedirectsToLogin() {
+        mockMvc.get().uri("/")
+            .assertThat()
+            .hasStatus3xxRedirection()
+            .redirectedUrl().endsWith("/login");
     }
 
     @Test
     @WithMockUser
-    void authenticatedAccessReturnsOk() throws Exception {
-        mockMvc.perform(get("/"))
-            .andExpect(status().isOk());
+    void authenticatedAccessReturnsOk() {
+        mockMvc.get().uri("/")
+            .assertThat()
+            .hasStatusOk();
     }
 }
