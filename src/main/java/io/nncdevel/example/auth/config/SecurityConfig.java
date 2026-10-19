@@ -1,5 +1,7 @@
 package io.nncdevel.example.auth.config;
 
+import static org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.withDefaults;
+
 import javax.sql.DataSource;
 
 import org.springframework.context.annotation.Bean;
@@ -14,7 +16,7 @@ import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.webauthn.management.JdbcUserCredentialRepository;
@@ -71,14 +73,15 @@ public class SecurityConfig {
     }
 
     private RequestCache requestCache() {
+        PathPatternRequestMatcher.Builder paths = withDefaults();
         HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
         requestCache.setRequestMatcher(new NegatedRequestMatcher(new OrRequestMatcher(
-            new AntPathRequestMatcher("/login"),
-            new AntPathRequestMatcher("/login/**"),
-            new AntPathRequestMatcher("/logout"),
-            new AntPathRequestMatcher("/logout/**"),
-            new AntPathRequestMatcher("/error"),
-            new AntPathRequestMatcher("/.well-known/**")
+            paths.matcher("/login"),
+            paths.matcher("/login/**"),
+            paths.matcher("/logout"),
+            paths.matcher("/logout/**"),
+            paths.matcher("/error"),
+            paths.matcher("/.well-known/**")
         )));
         return requestCache;
     }

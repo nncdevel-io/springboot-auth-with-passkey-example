@@ -4,7 +4,7 @@
 
 ### 1.1 目的
 
-Spring Security 6.5 が提供する Passkey（WebAuthn）認証機能の実装例を提示する。
+Spring Security 7.1 が提供する Passkey（WebAuthn）認証機能の実装例を提示する。
 パスワードレス認証を Spring Boot アプリケーションに統合する際のリファレンスとして利用することを想定する。
 
 ### 1.2 位置づけ
@@ -54,7 +54,7 @@ Passkey 管理を独自実装している。
 
 | 項目       | 要件                                                    |
 | ---------- | ------------------------------------------------------- |
-| Java       | JDK 21 以上                                             |
+| Java       | JDK 25 以上                                             |
 | ブラウザ   | WebAuthn API 対応（Chrome / Edge / Safari / Firefox）   |
 | プロトコル | HTTP（localhost のみ。それ以外は HTTPS 必須）           |
 
@@ -69,8 +69,8 @@ Passkey 管理を独自実装している。
 - WebAuthn は Secure Context でのみ動作する。
   localhost は例外として HTTP で動作するが、それ以外のホスト名では HTTPS が必須
 - Passkey の登録にはフォームログインによる事前認証が必要
-- Spring Security が内部で `webauthn4j-core` ライブラリを使用するため、依存に含める必要がある
-  （アプリケーションコードからは直接使用しない）
+- Passkey を使うには `spring-security-webauthn` を依存に含める必要がある
+  （内部で `webauthn4j-core` を使用するが、アプリケーションコードからは直接使用しない）
 
 ---
 
@@ -209,5 +209,5 @@ Passkey 管理を独自実装している。
 
 ## 7. 参考資料
 
-- [Spring Security 6.5 - Passkeys](https://docs.spring.io/spring-security/reference/servlet/authentication/passkeys.html)
+- [Spring Security 7.0 - Passkeys](https://docs.spring.io/spring-security/reference/7.0/servlet/authentication/passkeys.html)
 - [W3C Web Authentication (Level 3)](https://www.w3.org/TR/webauthn-3/)
