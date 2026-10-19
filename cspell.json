@@ -17,6 +17,21 @@
     "bcrypt",
     "authenticator",
     "attestation",
-    "COSE"
+    "COSE",
+    "izuno",
+    "webmvc",
+    "Dskip",
+    "Temurin",
+    "hamcrest",
+    "testuser",
+    "VARCHAR",
+    "BYTEA",
+    "RDBMS",
+    "Customizer",
+    "passkeydb",
+    "macbook"
+  ],
+  "ignoreRegExpList": [
+    "\\{bcrypt\\}\\$2[aby]?\\$\\d+\\$[./A-Za-z0-9]+"
   ]
 }

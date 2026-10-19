@@ -1,6 +1,6 @@
 # Spring Boot Auth with Passkey Example
 
-Spring Security 6.5 の Passkey（WebAuthn）サポートを使った認証の実装例です。
+Spring Security 7.1 の Passkey（WebAuthn）サポートを使った認証の実装例です。
 フォームログインと Passkey 認証のハイブリッド構成を採用しています。
 
 ## Passkey 有効化（デフォルト実装）
@@ -53,14 +53,14 @@ PasswordEncoder passwordEncoder() {
 - ログインページ（フォーム + Passkey ボタン + WebAuthn 認証 JS）
 - Passkey 登録ページ（`/webauthn/register`、ラベル入力・一覧・削除）
 
-依存ライブラリとして `webauthn4j-core` が必要です。Spring Security が WebAuthn の検証処理で内部的に
-使用するため、アプリケーションコードから直接呼び出すことはありません。
+依存ライブラリとして `spring-security-webauthn` が必要です。
+Spring Security 7 から Passkey の実装は独立したモジュールになりました。
+WebAuthn の検証処理に使う `webauthn4j-core` はこのモジュールから推移的に追加されるため、個別に指定する必要はありません。
 
 ```xml
 <dependency>
-    <groupId>com.webauthn4j</groupId>
-    <artifactId>webauthn4j-core</artifactId>
-    <version>0.29.7.RELEASE</version>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-webauthn</artifactId>
 </dependency>
 ```
 
@@ -317,8 +317,8 @@ src/main/
 
 ## 技術スタック
 
-- Java 21 / Spring Boot 3.5.9 / Spring Security 6.5.x
-- webauthn4j-core 0.29.7
+- Java 25 / Spring Boot 4.1.1 / Spring Security 7.1.x
+- spring-security-webauthn（webauthn4j-core 0.31.9 を推移的に利用）
 - Thymeleaf + thymeleaf-extras-springsecurity6
 - H2 Database（In-Memory）/ Maven
 
@@ -361,7 +361,7 @@ src/main/
 
 ## 参考資料
 
-- [Spring Security 6.5 - Passkeys](https://docs.spring.io/spring-security/reference/servlet/authentication/passkeys.html)
+- [Spring Security 7.0 - Passkeys](https://docs.spring.io/spring-security/reference/7.0/servlet/authentication/passkeys.html)
 - [W3C Web Authentication (Level 3)](https://www.w3.org/TR/webauthn-3/)
 
 ## License

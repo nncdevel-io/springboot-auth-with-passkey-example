@@ -9,7 +9,7 @@
 │   Browser    │────▶│            Spring Boot App                │
 │  (WebAuthn   │     │                                          │
 │   API)       │     │  ┌──────────────────────────────────┐    │
-│              │◀────│  │      Spring Security 6.5          │    │
+│              │◀────│  │      Spring Security 7.1          │    │
 │              │     │  │                                  │    │
 │              │     │  │  ┌──────────┐  ┌──────────────┐  │    │
 │              │     │  │  │FormLogin │  │ WebAuthn     │  │    │
@@ -36,19 +36,20 @@
 
 ```text
 アプリケーションコード
-  ├── spring-boot-starter-web
+  ├── spring-boot-starter-webmvc
   ├── spring-boot-starter-security
-  │     └── spring-security-web
-  │           └── (内部で使用) webauthn4j-core  ← アプリから直接参照しない
+  ├── spring-security-webauthn              ← Passkey（WebAuthn）の実装
+  │     └── (内部で使用) webauthn4j-core    ← アプリから直接参照しない
   ├── spring-boot-starter-jdbc
   ├── spring-boot-starter-thymeleaf
   ├── thymeleaf-extras-springsecurity6      ← 認証情報のテンプレート参照用
-  └── h2 (runtime)
+  ├── h2 (runtime)
+  └── spring-boot-h2console                 ← H2 コンソール用
 ```
 
-Spring Security は WebAuthn のアテステーション・アサーション検証に `webauthn4j-core` を内部で使用する。
-Spring Security の自動構成により適切に組み込まれるため、アプリケーションコードから `webauthn4j-core` の
-API を直接呼び出すことはない。
+`spring-security-webauthn` は WebAuthn のアテステーション・アサーション検証に `webauthn4j-core` を内部で使用する。
+`webauthn4j-core` は `spring-security-webauthn` の推移的依存として追加されるため、個別に指定しない。
+アプリケーションコードから `webauthn4j-core` の API を直接呼び出すことはない。
 
 ---
 
@@ -196,7 +197,7 @@ public class SecurityConfig {
             throws Exception {
         return http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/error", "/.well-known/**")
+                .requestMatchers("/css/**", "/js/**", "/error", "/.well-known/**")
                     .permitAll()
                 .anyRequest().authenticated()
             )
@@ -242,14 +243,15 @@ public class SecurityConfig {
 
     private RequestCache requestCache() {
         HttpSessionRequestCache cache = new HttpSessionRequestCache();
+        var matcher = PathPatternRequestMatcher.withDefaults();
         cache.setRequestMatcher(
             new NegatedRequestMatcher(new OrRequestMatcher(
-                new AntPathRequestMatcher("/login"),
-                new AntPathRequestMatcher("/login/**"),
-                new AntPathRequestMatcher("/logout"),
-                new AntPathRequestMatcher("/logout/**"),
-                new AntPathRequestMatcher("/error"),
-                new AntPathRequestMatcher("/.well-known/**")
+                matcher.matcher("/login"),
+                matcher.matcher("/login/**"),
+                matcher.matcher("/logout"),
+                matcher.matcher("/logout/**"),
+                matcher.matcher("/error"),
+                matcher.matcher("/.well-known/**")
             ))
         );
         return cache;
@@ -413,7 +415,7 @@ logging.level.org.springframework.security=DEBUG
 <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.9</version>
+    <version>4.1.1</version>
 </parent>
 
 <groupId>io.nncdevel.example</groupId>
@@ -421,12 +423,12 @@ logging.level.org.springframework.security=DEBUG
 <version>0.0.1-SNAPSHOT</version>
 
 <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
 </properties>
 
 <dependencies>
     <!-- Spring Boot -->
-    spring-boot-starter-web
+    spring-boot-starter-webmvc
     spring-boot-starter-security
     spring-boot-starter-jdbc
     spring-boot-starter-thymeleaf
@@ -434,15 +436,18 @@ logging.level.org.springframework.security=DEBUG
     <!-- Thymeleaf Spring Security Integration -->
     thymeleaf-extras-springsecurity6
 
-    <!-- WebAuthn4J (Spring Security が内部で使用) -->
-    webauthn4j-core:0.29.7.RELEASE
+    <!-- Spring Security WebAuthn（webauthn4j-core を推移的に利用） -->
+    spring-security-webauthn
 
     <!-- H2 Database (runtime) -->
     h2
 
+    <!-- H2 Console -->
+    spring-boot-h2console
+
     <!-- Test -->
-    spring-boot-starter-test (test)
-    spring-security-test (test)
+    spring-boot-starter-webmvc-test (test)
+    spring-boot-starter-security-test (test)
 </dependencies>
 ```
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-Passkey（WebAuthn）によるパスワードレス認証を実装したSpring Boot Webアプリケーションのサンプル。Java 21、Spring Boot 3.5.x、Spring Security 6.5.x を使用。フォームログインとPasskey認証のハイブリッド構成。
+Passkey（WebAuthn）によるパスワードレス認証を実装したSpring Boot Webアプリケーションのサンプル。Java 25、Spring Boot 4.1.x、Spring Security 7.1.x を使用。フォームログインとPasskey認証のハイブリッド構成。
 
 ## ビルド・テストコマンド
 
@@ -32,7 +32,7 @@ Passkey（WebAuthn）によるパスワードレス認証を実装したSpring B
 
 ### パッケージ構成
 
-```
+```text
 io.nncdevel.example.auth/
 ├── Application.java                 # エントリポイント
 ├── config/
@@ -55,7 +55,8 @@ io.nncdevel.example.auth/
 
 ### ビュー層
 
-Thymeleaf テンプレート (`src/main/resources/templates/`) + 静的リソース (`src/main/resources/static/css/`)。ログインページとPasskey登録ページはSpring Securityが提供。
+Thymeleaf テンプレート (`src/main/resources/templates/`) + 静的リソース (`src/main/resources/static/css/`)。
+ログインページとPasskey登録ページはSpring Securityが提供。
 
 ### データ永続化
 
@@ -70,4 +71,5 @@ H2 Database（In-Memory）。`schema.sql` でテーブル作成、`data.sql` で
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`)。`develop` ブランチへのpush/PRおよび `claude/**` ブランチへのpushで起動。JDK 21 (Temurin) を使用。
+GitHub Actions (`.github/workflows/ci.yml`)。`main` / `develop` ブランチへのpush/PRおよび `claude/**` ブランチへのpushで起動。
+JDK 25 (Oracle) を使用。
