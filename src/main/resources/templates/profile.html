@@ -62,102 +62,73 @@
         <footer th:replace="~{fragments/layout :: footer}"></footer>
     </div>
 
+    <script src="/js/webauthn-utils.js"></script>
     <script>
-    (function() {
-        function base64urlEncode(buffer) {
-            var base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)));
-            return base64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-        }
-        function base64urlDecode(base64url) {
-            var base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-            var binary = atob(base64);
-            var bytes = new Uint8Array(binary.length);
-            for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            return bytes.buffer;
-        }
-        function getCsrfHeaders() {
-            var token = document.querySelector('meta[name="_csrf"]').content;
-            var header = document.querySelector('meta[name="_csrf_header"]').content;
-            var headers = {};
-            headers[header] = token;
-            return headers;
-        }
-        async function postJson(url, headers, body) {
-            var options = {
-                method: 'POST',
-                headers: Object.assign({ 'Content-Type': 'application/json' }, headers)
-            };
-            if (body) {
-                options.body = JSON.stringify(body);
-            }
-            return fetch(url, options);
-        }
-        function showResult(msg, isError) {
-            var el = document.getElementById('register-result');
-            el.textContent = msg;
-            el.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
-            el.style.display = 'block';
-        }
+    function showResult(msg, isError) {
+        var el = document.getElementById('register-result');
+        el.textContent = msg;
+        el.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+        el.style.display = 'block';
+    }
 
-        document.getElementById('register-passkey').addEventListener('click', async function() {
-            var label = document.getElementById('passkey-label').value.trim();
-            if (!label) { showResult('Please enter a label.', true); return; }
-            try {
-                var headers = getCsrfHeaders();
+    document.getElementById('register-passkey').addEventListener('click', async function() {
+        var label = document.getElementById('passkey-label').value.trim();
+        if (!label) { showResult('Please enter a label.', true); return; }
+        try {
+            var headers = getCsrfHeaders();
 
-                var optRes = await postJson('/webauthn/register/options', headers);
-                if (!optRes.ok) throw new Error('HTTP ' + optRes.status);
-                var options = await optRes.json();
+            var optRes = await postJson('/webauthn/register/options', headers);
+            if (!optRes.ok) throw new Error('HTTP ' + optRes.status);
+            var options = await optRes.json();
 
-                var decodedExcludeCredentials = !options.excludeCredentials ? [] :
-                    options.excludeCredentials.map(function(c) {
-                        return Object.assign({}, c, { id: base64urlDecode(c.id) });
-                    });
-                var publicKeyOptions = Object.assign({}, options, {
-                    user: Object.assign({}, options.user, {
-                        id: base64urlDecode(options.user.id)
-                    }),
-                    challenge: base64urlDecode(options.challenge),
-                    excludeCredentials: decodedExcludeCredentials
+            var decodedExcludeCredentials = !options.excludeCredentials ? [] :
+                options.excludeCredentials.map(function(c) {
+                    return Object.assign({}, c, { id: base64urlDecode(c.id) });
                 });
+            var publicKeyOptions = Object.assign({}, options, {
+                user: Object.assign({}, options.user, {
+                    id: base64urlDecode(options.user.id)
+                }),
+                challenge: base64urlDecode(options.challenge),
+                excludeCredentials: decodedExcludeCredentials
+            });
 
-                var cred = await navigator.credentials.create({ publicKey: publicKeyOptions });
+            var cred = await navigator.credentials.create({ publicKey: publicKeyOptions });
 
-                var credential = {
-                    id: cred.id,
-                    rawId: base64urlEncode(cred.rawId),
-                    response: {
-                        attestationObject: base64urlEncode(cred.response.attestationObject),
-                        clientDataJSON: base64urlEncode(cred.response.clientDataJSON),
-                        transports: cred.response.getTransports ? cred.response.getTransports() : []
-                    },
-                    type: cred.type,
-                    clientExtensionResults: cred.getClientExtensionResults(),
-                    authenticatorAttachment: cred.authenticatorAttachment
-                };
-                var registrationRequest = {
-                    publicKey: {
-                        credential: credential,
-                        label: label
-                    }
-                };
-
-                var regRes = await postJson('/webauthn/register', headers, registrationRequest);
-                if (!regRes.ok) throw new Error('HTTP ' + regRes.status);
-                var result = await regRes.json();
-                if (result && result.success) {
-                    window.location.reload();
-                } else {
-                    showResult('Registration failed: ' + JSON.stringify(result), true);
+            var credential = {
+                id: cred.id,
+                rawId: base64urlEncode(cred.rawId),
+                response: {
+                    attestationObject: base64urlEncode(cred.response.attestationObject),
+                    clientDataJSON: base64urlEncode(cred.response.clientDataJSON),
+                    transports: cred.response.getTransports ? cred.response.getTransports() : []
+                },
+                type: cred.type,
+                clientExtensionResults: cred.getClientExtensionResults(),
+                authenticatorAttachment: cred.authenticatorAttachment
+            };
+            var registrationRequest = {
+                publicKey: {
+                    credential: credential,
+                    label: label
                 }
-            } catch (e) {
-                if (e.name !== 'NotAllowedError') {
-                    console.error('WebAuthn registration error:', e);
-                    showResult('Registration failed: ' + e.message, true);
-                }
+            };
+
+            var regRes = await postJson('/webauthn/register', headers, registrationRequest);
+            if (!regRes.ok) throw new Error('HTTP ' + regRes.status);
+            var result = await regRes.json();
+            if (result && result.success) {
+                window.location.reload();
+            } else {
+                showResult('Registration failed: ' + JSON.stringify(result), true);
             }
-        });
-    })();
+        } catch (e) {
+            if (e.name !== 'NotAllowedError') {
+                console.error('WebAuthn registration error:', e);
+                showResult('Registration failed: ' + e.message, true);
+            }
+        }
+    });
     </script>
 </body>
 </html>

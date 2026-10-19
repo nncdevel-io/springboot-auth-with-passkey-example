@@ -71,4 +71,5 @@ H2 Database（In-Memory）。`schema.sql` でテーブル作成、`data.sql` で
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`)。`develop` ブランチへのpush/PRおよび `claude/**` ブランチへのpushで起動。JDK 25 (Temurin) を使用。
+GitHub Actions (`.github/workflows/ci.yml`)。`main` / `develop` ブランチへのpush/PRおよび `claude/**` ブランチへのpushで起動。
+JDK 25 (Oracle) を使用。

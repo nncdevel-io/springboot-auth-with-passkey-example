@@ -1,7 +1,5 @@
 package io.nncdevel.example.auth.config;
 
-import static org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.withDefaults;
-
 import javax.sql.DataSource;
 
 import org.springframework.context.annotation.Bean;
@@ -32,7 +30,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/error", "/.well-known/**").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/error", "/.well-known/**").permitAll()
                 .anyRequest().authenticated()
             )
             .requestCache(cache -> cache
@@ -73,15 +71,15 @@ public class SecurityConfig {
     }
 
     private RequestCache requestCache() {
-        PathPatternRequestMatcher.Builder paths = withDefaults();
         HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+        var matcher = PathPatternRequestMatcher.withDefaults();
         requestCache.setRequestMatcher(new NegatedRequestMatcher(new OrRequestMatcher(
-            paths.matcher("/login"),
-            paths.matcher("/login/**"),
-            paths.matcher("/logout"),
-            paths.matcher("/logout/**"),
-            paths.matcher("/error"),
-            paths.matcher("/.well-known/**")
+            matcher.matcher("/login"),
+            matcher.matcher("/login/**"),
+            matcher.matcher("/logout"),
+            matcher.matcher("/logout/**"),
+            matcher.matcher("/error"),
+            matcher.matcher("/.well-known/**")
         )));
         return requestCache;
     }

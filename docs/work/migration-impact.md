@@ -20,7 +20,7 @@ Spring Boot 3.5.9（Spring Security 6.5.7）から Spring Boot 4.1.1（Spring Se
 | 9 | `JdbcCustomUserEntityRepository.java`、`ProfileController.java` | `org.springframework.security.web.webauthn` パッケージの型（`Bytes`、`CredentialRecord` など）はパッケージ名が変わらない | 確認済み（根拠 11） | TASK-005 |
 | 10 | `schema.sql` | 変更不要。`spring-security-web` 6.5.7 と 7.1.1 に同梱された `user-credentials-schema.sql` と `user-entities-schema.sql` を比べ、差分がないことを確かめた | 確認済み | TASK-005 |
 | 11 | テスト3ファイル | `@AutoConfigureMockMvc` の import を `org.springframework.boot.webmvc.test.autoconfigure` に変える | 確認済み（根拠 7） | TASK-006 |
-| 12 | `SecurityConfigTests.java` | 7.0 でログインページへのリダイレクトが相対 URL 優先に変わり、リダイレクト先が `/login` になる。期待値を `redirectedUrl("/login")` に変える | 確認済み（根拠 8、テスト実行で再現） | TASK-006 |
+| 12 | `SecurityConfigTests.java` | 7.0 でログインページへのリダイレクトが相対 URL 優先に変わり、リダイレクト先が `/login` になる。`main` から取り込んだ `MockMvcTester` の検証（`redirectedUrl().endsWith("/login")`）のままで通る | 確認済み（根拠 8、テスト実行で再現） | TASK-006 |
 | 13 | `login.html`、`profile.html` | Passkey のエンドポイント（`/webauthn/register/options`、`/webauthn/register`、`/webauthn/authenticate/options`、`/login/webauthn`）は変わらない | 確認済み（根拠 4） | TASK-008 |
 | 14 | `.mvn/wrapper/maven-wrapper.properties` | Maven 3.9.16 は Boot 4.1 の要件（Maven 3.6.3 以上）を満たす | 確認済み（根拠 2） | TASK-002 |
 | 15 | `application.properties` | 変更不要。`spring-boot-properties-migrator` を一時的に入れて起動し、名前が変わったプロパティーの警告が出ないことを確かめた。確認後に依存から外した | 確認済み（根拠 14） | TASK-008 |

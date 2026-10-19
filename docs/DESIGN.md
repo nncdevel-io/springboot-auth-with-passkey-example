@@ -197,7 +197,7 @@ public class SecurityConfig {
             throws Exception {
         return http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/error", "/.well-known/**")
+                .requestMatchers("/css/**", "/js/**", "/error", "/.well-known/**")
                     .permitAll()
                 .anyRequest().authenticated()
             )
@@ -242,16 +242,16 @@ public class SecurityConfig {
     }
 
     private RequestCache requestCache() {
-        PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
         HttpSessionRequestCache cache = new HttpSessionRequestCache();
+        var matcher = PathPatternRequestMatcher.withDefaults();
         cache.setRequestMatcher(
             new NegatedRequestMatcher(new OrRequestMatcher(
-                paths.matcher("/login"),
-                paths.matcher("/login/**"),
-                paths.matcher("/logout"),
-                paths.matcher("/logout/**"),
-                paths.matcher("/error"),
-                paths.matcher("/.well-known/**")
+                matcher.matcher("/login"),
+                matcher.matcher("/login/**"),
+                matcher.matcher("/logout"),
+                matcher.matcher("/logout/**"),
+                matcher.matcher("/error"),
+                matcher.matcher("/.well-known/**")
             ))
         );
         return cache;
